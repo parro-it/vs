@@ -1,0 +1,39 @@
+package mountedfs
+
+import (
+	"io"
+	"io/fs"
+)
+
+type virtualRootDir struct {
+	entries []fs.DirEntry
+	cursor  int
+}
+
+func (dir virtualRootDir) Stat() (fs.FileInfo, error) { return newMemDirInfo("."), nil }
+func (dir virtualRootDir) Read([]byte) (int, error)   { return 0, nil }
+func (dir virtualRootDir) Close() error               { return nil }
+
+func (dir *virtualRootDir) ReadDir(n int) ([]fs.DirEntry, error) {
+	if n == -1 {
+		if dir.cursor > 0 {
+			return []fs.DirEntry{}, nil
+		}
+		dir.cursor += len(dir.entries)
+		return dir.entries, nil
+	}
+	if dir.cursor >= len(dir.entries) {
+		return []fs.DirEntry{}, io.EOF
+	}
+	last := dir.cursor + n
+	var err error
+	if last > len(dir.entries) {
+		last = len(dir.entries)
+		err = io.EOF
+	}
+
+	res := dir.entries[dir.cursor:last]
+	dir.cursor += n
+
+	return res, err
+}
