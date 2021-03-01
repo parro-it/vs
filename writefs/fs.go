@@ -13,11 +13,11 @@ import (
 // WriteFS ...
 type WriteFS interface {
 	fs.FS
-	OpenFile(name string, flag int, perm fs.FileMode) (WriteFile, error)
+	OpenFile(name string, flag int, perm fs.FileMode) (FileWriter, error)
 }
 
-// WriteFile ...
-type WriteFile interface {
+// FileWriter ...
+type FileWriter interface {
 	fs.File
 	io.Writer
 }
@@ -31,7 +31,7 @@ func (f readOnlyWriteFile) Write(p []byte) (n int, err error) {
 }
 
 // OpenFile ...
-func OpenFile(fsInst fs.FS, name string, flag int, perm fs.FileMode) (WriteFile, error) {
+func OpenFile(fsInst fs.FS, name string, flag int, perm fs.FileMode) (FileWriter, error) {
 	if fs, ok := fsInst.(WriteFS); ok {
 		return fs.OpenFile(name, flag, perm)
 	}
@@ -55,7 +55,7 @@ type osWriteFS struct {
 }
 
 // OpenFile ...
-func (fsinst osWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (WriteFile, error) {
+func (fsinst osWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (FileWriter, error) {
 	realPath := path.Join(fsinst.root, name)
 	return os.OpenFile(realPath, flag, perm)
 }
@@ -76,17 +76,17 @@ func (f memWriteFile) Write(buf []byte) (n int, err error) {
 }
 
 // OpenFile ...
-func (fsinst MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (WriteFile, error) {
-	f, err := fsinst.Open(name)
-	if err != nil {
-		return nil, err
-	}
+func (fsinst MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (FileWriter, error) {
 
 	file, exists := fsinst.MapFS[name]
 
 	if flag == os.O_RDONLY {
 		if !exists {
 			return nil, fs.ErrNotExist
+		}
+		f, err := fsinst.Open(name)
+		if err != nil {
+			return nil, err
 		}
 		return readOnlyWriteFile{f}, nil
 	}
@@ -114,6 +114,11 @@ func (fsinst MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (Writ
 
 	}
 
+	f, err := fsinst.Open(name)
+	if err != nil {
+		return nil, err
+	}
+
 	return memWriteFile{
 		File: f,
 		file: file,
@@ -126,4 +131,16 @@ func DirWriteFS(dir string) WriteFS {
 		FS:   os.DirFS(dir),
 		root: dir,
 	}
+}
+
+// WriteFile ...
+func WriteFile(fsys fs.FS, name string, buf []byte) (n int, err error) {
+	file, err := OpenFile(fsys, name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fs.FileMode(0644))
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	n, err = file.Write(buf)
+	return
 }

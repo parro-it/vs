@@ -91,6 +91,20 @@ func TestWriteFS(t *testing.T) {
 
 	})
 
+	t.Run("WriteFile", func(t *testing.T) {
+		fsw := MapWriteFS{fstest.MapFS{}}
+
+		buf := []byte("pippero")
+		n, err := WriteFile(fsw, "file.pip", buf)
+		assert.NoError(t, err)
+		assert.Equal(t, len(buf), n)
+
+		actual, err := fs.ReadFile(fsw, "file.pip")
+		assert.NoError(t, err)
+		assert.Equal(t, buf, actual)
+
+	})
+
 	t.Run("MapWriteFS", func(t *testing.T) {
 		data := []byte{0xca, 0xfe, 0xba, 0xbe}
 

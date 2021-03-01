@@ -95,7 +95,7 @@ func (f MountedFS) Sub(dir string) (fs.FS, error) {
 }
 
 // OpenFile implements writefs.WriteFS
-func (f MountedFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.WriteFile, error) {
+func (f MountedFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.FileWriter, error) {
 	return nil, nil
 }
 
