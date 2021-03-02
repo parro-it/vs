@@ -1,0 +1,6 @@
+* mountedfs: implement writefs.writefs
+* mission: run a software on a network of nodes,
+    connected via ssh, with developer happiness as first
+    principle and the ability to move piece of go software 
+    to other nodes to be executed remotely (e.g. to fast copy 
+    or fast move a big file on a remote server file system).
