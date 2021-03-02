@@ -2,10 +2,13 @@ package sshfs
 
 import (
 	"io/fs"
+	"os"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/parro-it/sshconfig"
+	"github.com/parro-it/vs/writefs"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ssh"
 )
@@ -46,6 +49,22 @@ func TestSSHFS(t *testing.T) {
 			fsys.Disconnect()
 			sshClient.Close()
 		})
+	})
+
+	t.Run("can open files for write", func(t *testing.T) {
+		fsys, err := Connect("/var/fixtures", hostCfg)
+		f, err := writefs.OpenFile(fsys, "prova", os.O_WRONLY|os.O_CREATE, fs.FileMode(0664))
+
+		buf := []byte(time.Now().Format(time.RFC3339Nano))
+		n, err := f.Write(buf)
+		assert.NoError(t, err)
+		assert.Equal(t, n, len(buf))
+		f.Close()
+
+		actual, err := fs.ReadFile(fsys, "prova")
+		assert.NoError(t, err)
+		assert.Equal(t, buf, actual)
+
 	})
 
 	t.Run("can open files", func(t *testing.T) {

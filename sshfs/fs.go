@@ -22,7 +22,23 @@ type SSHFS struct {
 
 // OpenFile implements writefs.WriteFS
 func (fsys *SSHFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.FileWriter, error) {
-	return nil, nil
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{}
+	}
+
+	fPath := fsys.resolvePath(name)
+	f, err := fsys.client.OpenFile(fPath, flag)
+	if err != nil {
+		return nil, err
+	}
+
+	wrapper := fileWrapper{
+		File:         f,
+		resolvedPath: fPath,
+		fsys:         fsys,
+	}
+
+	return &wrapper, nil
 }
 
 // Stat implements fs.StatFS
@@ -61,19 +77,6 @@ type fileWrapper struct {
 	fsys         *SSHFS
 	dirContent   []fs.DirEntry
 	cursor       int
-}
-
-type rootedDirEntry struct {
-	os.FileInfo
-}
-
-func (f *fileWrapper) Stat() (fs.FileInfo, error) {
-	info, err := f.File.Stat()
-	if err != nil {
-		return nil, err
-	}
-	return rootedDirEntry{info}, nil
-
 }
 
 func (f *fileWrapper) ReadDir(n int) ([]fs.DirEntry, error) {
