@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/parro-it/sshconfig"
+	"github.com/mikkeloscar/sshconfig"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
@@ -42,7 +42,7 @@ func initConfig() error {
 			return err
 		}
 
-		hosts, err := sshconfig.Parse(os.DirFS(home), ".ssh/config")
+		hosts, err := sshconfig.ParseFS(os.DirFS(home), ".ssh/config")
 		if err != nil {
 			return err
 		}
@@ -101,12 +101,12 @@ func hostToCfg(host *sshconfig.SSHHost) (*hostCfg, error) {
 // SSH transport layer.
 // the Disconnect method of the SSHFS instance will disconnect the
 // SSH connection too.
-func ConnectFromConfig(root string,sshHostName string) (*SSHFS, error) {
+func ConnectFromConfig(root string, sshHostName string) (*SSHFS, error) {
 	err := initConfig()
 	if err != nil {
 		return nil, err
 	}
-	return connect(root,cfg[sshHostName])
+	return connect(root, cfg[sshHostName])
 }
 
 // Connect returns a functioning instance of *SSHFS

@@ -7,7 +7,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/parro-it/sshconfig"
+	"github.com/mikkeloscar/sshconfig"
 	"github.com/parro-it/vs/writefs"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ssh"
