@@ -27,6 +27,12 @@ func (fsys *SSHFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.Fi
 	}
 
 	fPath := fsys.resolvePath(name)
+
+	if flag&os.O_CREATE == os.O_CREATE &&
+		perm.IsDir() {
+		return nil, fsys.client.MkdirAll(fPath)
+	}
+
 	f, err := fsys.client.OpenFile(fPath, flag)
 	if err != nil {
 		return nil, err

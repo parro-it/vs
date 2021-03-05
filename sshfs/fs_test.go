@@ -67,6 +67,20 @@ func TestSSHFS(t *testing.T) {
 
 	})
 
+	t.Run("creates directories with OpenFile", func(t *testing.T) {
+		fsys, err := Connect("/tmp", hostCfg)
+		assert.NoError(t, err)
+		fsys.client.RemoveDirectory("/tmp/adir")
+		fsys.client.Remove("/tmp/adir")
+		f, err := fsys.OpenFile("adir", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
+		assert.NoError(t, err)
+		assert.Nil(t, f)
+		info, err := fsys.client.Stat("/tmp/adir")
+		assert.NoError(t, err)
+		assert.True(t, info.IsDir())
+		err = fsys.client.RemoveDirectory("/tmp/adir")
+		assert.NoError(t, err)
+	})
 	t.Run("can open files", func(t *testing.T) {
 		fsys, err := Connect("/var/fixtures", hostCfg)
 		f, err := fsys.Open("ciao.txt")
