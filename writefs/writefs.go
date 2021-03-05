@@ -30,6 +30,9 @@ func (f ReadOnlyWriteFile) Write(p []byte) (n int, err error) {
 
 // OpenFile ...
 func OpenFile(fsInst fs.FS, name string, flag int, perm fs.FileMode) (FileWriter, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{}
+	}
 
 	if fs, ok := fsInst.(WriteFS); ok {
 		return fs.OpenFile(name, flag, perm)
