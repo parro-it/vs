@@ -68,6 +68,26 @@ func TestOsFS(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("remove directories with OpenFile", func(t *testing.T) {
+		os.MkdirAll("/tmp/adir", os.FileMode(0755))
+		info, err := os.Stat("/tmp/adir")
+		assert.NoError(t, err)
+		assert.True(t, info.IsDir())
+
+		fsys := DirWriteFS("/tmp")
+		f, err := fsys.OpenFile("adir", os.O_TRUNC, 0)
+		assert.NoError(t, err)
+		assert.Nil(t, f)
+
+		info, err = os.Stat("/tmp/adir")
+		assert.Error(t, err)
+		assert.True(t, os.IsNotExist(err))
+		assert.Nil(t, info)
+
+		os.RemoveAll("/tmp/adir")
+
+	})
+
 	t.Run("pass TestFS", func(t *testing.T) {
 		fstest.TestFS(fsw, "dir1/file2", "file1")
 

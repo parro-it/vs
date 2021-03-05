@@ -24,6 +24,11 @@ func (fsinst osWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (write
 		perm.IsDir() {
 		return nil, os.MkdirAll(realPath, perm)
 	}
+
+	if flag == os.O_TRUNC {
+		return nil, os.RemoveAll(realPath)
+	}
+
 	return os.OpenFile(realPath, flag, perm)
 }
 

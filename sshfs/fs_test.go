@@ -81,6 +81,26 @@ func TestSSHFS(t *testing.T) {
 		err = fsys.client.RemoveDirectory("/tmp/adir")
 		assert.NoError(t, err)
 	})
+
+	t.Run("remove directories with OpenFile", func(t *testing.T) {
+		fsys, err := Connect("/tmp", hostCfg)
+		fsys.client.MkdirAll("/tmp/adir")
+		info, err := fsys.client.Stat("/tmp/adir")
+		assert.NoError(t, err)
+		assert.True(t, info.IsDir())
+
+		f, err := fsys.OpenFile("adir", os.O_TRUNC, 0)
+		assert.NoError(t, err)
+		assert.Nil(t, f)
+
+		info, err = fsys.client.Stat("/tmp/adir")
+		assert.Error(t, err)
+		assert.True(t, os.IsNotExist(err))
+		assert.Nil(t, info)
+
+		fsys.client.RemoveDirectory("/tmp/adir")
+
+	})
 	t.Run("can open files", func(t *testing.T) {
 		fsys, err := Connect("/var/fixtures", hostCfg)
 		f, err := fsys.Open("ciao.txt")

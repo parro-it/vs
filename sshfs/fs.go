@@ -33,6 +33,10 @@ func (fsys *SSHFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.Fi
 		return nil, fsys.client.MkdirAll(fPath)
 	}
 
+	if flag == os.O_TRUNC {
+		return nil, fsys.client.RemoveDirectory(fPath)
+	}
+
 	f, err := fsys.client.OpenFile(fPath, flag)
 	if err != nil {
 		return nil, err
