@@ -81,7 +81,7 @@ func hostToCfg(host *sshconfig.SSHHost) (*hostCfg, error) {
 
 	key, err := privateSSHKey(identityFile)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read ssh key %s: %w", host.IdentityFile, err)
+		return nil, nil //fmt.Errorf("cannot read ssh key %s: %w", host.IdentityFile, err)
 	}
 
 	hostCfg := &hostCfg{
@@ -138,6 +138,9 @@ func connect(root string, config *hostCfg) (*SSHFS, error) {
 
 // Disconnect ...
 func (fsys *SSHFS) Disconnect() {
+	if fsys == nil {
+		return
+	}
 	fsys.client.Close()
 
 	if fsys.ownedSSHCient != nil {

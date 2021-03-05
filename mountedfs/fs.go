@@ -39,6 +39,13 @@ import (
 // * writefs.WriteFS
 type MountedFS map[string]fs.FS
 
+var (
+	_ fs.StatFS       = MountedFS(nil)
+	_ fs.ReadFileFS   = MountedFS(nil)
+	_ fs.SubFS        = MountedFS(nil)
+	_ writefs.WriteFS = MountedFS(nil)
+)
+
 // Stat implements fs.StatFS
 func (f MountedFS) Stat(name string) (fs.FileInfo, error) {
 	if name == "." {
