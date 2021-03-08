@@ -30,6 +30,7 @@ jobs:
         cp fixtures/fakehost/keys/fake-host /var/fixtures/private-key
         mkdir ~/.ssh
         chmod 700 ~/.ssh
+        cp fixtures/fakehost/keys/fake-host ~/.ssh/config 
         cp fixtures/fakehost/config ~/.ssh/config 
 
     - name: Start fakehost container
