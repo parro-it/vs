@@ -3,6 +3,8 @@ package memfs
 import (
 	"io/fs"
 	"os"
+	"path"
+	"strings"
 	"testing/fstest"
 	"time"
 
@@ -25,19 +27,57 @@ func (f memWriteFile) Write(buf []byte) (n int, err error) {
 }
 
 // OpenFile ...
-func (fsinst MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.FileWriter, error) {
+func (fsys MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.FileWriter, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{}
+	}
 
-	file, exists := fsinst.MapFS[name]
+	file, exists := fsys.MapFS[name]
 
 	if flag == os.O_RDONLY {
 		if !exists {
 			return nil, fs.ErrNotExist
 		}
-		f, err := fsinst.Open(name)
+		f, err := fsys.Open(name)
 		if err != nil {
 			return nil, err
 		}
 		return writefs.ReadOnlyWriteFile{File: f}, nil
+	}
+
+	if flag&os.O_CREATE == os.O_CREATE && perm.IsDir() {
+		if exists {
+			return nil, fs.ErrExist
+		}
+		segments := strings.Split(name, "/")
+		curr := "."
+		for _, seg := range segments[:len(segments)-1] {
+			curr = path.Join(curr, seg)
+			_, err := fsys.Stat(curr)
+			if os.IsNotExist(err) {
+				_, err = fsys.OpenFile(curr, flag, perm)
+				if err != nil {
+					return nil, err
+				}
+
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+		fsys.MapFS[name] = &fstest.MapFile{
+			Mode:    perm,
+			ModTime: time.Now(),
+		}
+		return nil, nil
+	}
+
+	if flag == os.O_TRUNC {
+		if !exists {
+			return nil, fs.ErrNotExist
+		}
+		delete(fsys.MapFS, name)
+		return nil, nil
 	}
 
 	if exists {
@@ -59,11 +99,11 @@ func (fsinst MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writ
 			Mode:    perm,
 			ModTime: time.Now(),
 		}
-		fsinst.MapFS[name] = file
+		fsys.MapFS[name] = file
 
 	}
 
-	f, err := fsinst.Open(name)
+	f, err := fsys.Open(name)
 	if err != nil {
 		return nil, err
 	}

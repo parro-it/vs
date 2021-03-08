@@ -51,7 +51,7 @@ func TestOsFS(t *testing.T) {
 		t.Run("creates directories with OpenFile", func(t *testing.T) {
 
 			fsys := MapWriteFS{fstest.MapFS{}}
-			f, err := fsys.OpenFile("adir", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
+			f, err := fsys.OpenFile("tmp/adir", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
 			assert.NoError(t, err)
 			assert.Nil(t, f)
 			info, err := fs.Stat(fsys, "tmp/adir")
@@ -65,11 +65,16 @@ func TestOsFS(t *testing.T) {
 			fsys := MapWriteFS{fstest.MapFS{
 				"adir/afile": &fstest.MapFile{Mode: fs.ModeDir},
 			}}
-			f, err := fsys.OpenFile("adir", os.O_TRUNC, 0)
+
+			info, err := fs.Stat(fsys, "adir/afile")
+			assert.NoError(t, err)
+			assert.True(t, info.IsDir())
+
+			f, err := fsys.OpenFile("adir/afile", os.O_TRUNC, 0)
 			assert.NoError(t, err)
 			assert.Nil(t, f)
 
-			info, err := fs.Stat(fsys, "/tmp/adir")
+			info, err = fs.Stat(fsys, "adir/afile")
 			assert.Error(t, err)
 			assert.True(t, os.IsNotExist(err))
 			assert.Nil(t, info)
