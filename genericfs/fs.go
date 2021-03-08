@@ -17,6 +17,7 @@ var (
 	_ writefs.RemoveFS = FS{}
 	_ writefs.MkDirFS  = FS{}
 	_ fs.ReadDirFS     = FS{}
+	_ fs.GlobFS        = FS{}
 )
 
 // MkDir implements writefs.MkDirFS
@@ -56,5 +57,10 @@ func (fsys FS) Open(name string) (fs.File, error) {
 
 // ReadDir implements fs.ReadDirFS
 func (fsys FS) ReadDir(name string) ([]fs.DirEntry, error) {
+	return nil, nil
+}
+
+// Glob implements fs.GlobFS
+func (fsys FS) Glob(pattern string) ([]string, error) {
 	return nil, nil
 }
