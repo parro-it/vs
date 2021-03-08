@@ -81,7 +81,7 @@ func hostToCfg(host *sshconfig.SSHHost) (*hostCfg, error) {
 
 	key, err := privateSSHKey(identityFile)
 	if err != nil {
-		return nil, nil //fmt.Errorf("cannot read ssh key %s: %w", host.IdentityFile, err)
+		return nil, fmt.Errorf("cannot read ssh key %s: %w", identityFile, err)
 	}
 
 	hostCfg := &hostCfg{
