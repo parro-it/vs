@@ -49,5 +49,13 @@ jobs:
           -e USER_NAME=andrea.parodi \
           -p 2222:2222 \
           meteocima/fake-ssh-host&
-        go test -v ./...
+        go test -race -covermode atomic -coverprofile=covprofile ./...
         kill %1
+    - name: Install goveralls
+      env:
+        GO111MODULE: off
+      run: go get github.com/mattn/goveralls
+    - name: Send coverage
+      env:
+        COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: goveralls -coverprofile=covprofile -service=github
