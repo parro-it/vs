@@ -10,7 +10,7 @@ import (
 // that provides an optimized implementation of Remove.
 type RemoveFS interface {
 	fs.FS
-	Remove(name string, perm fs.FileMode) error
+	Remove(name string) error
 }
 
 // Remove creates a new directory with the specified name
@@ -19,9 +19,9 @@ type RemoveFS interface {
 // If fsys implements RemoveFS, Remove calls fsys.Remove.
 // Otherwise Remove calls fsys.OpenFile with a fs.O_DIR
 // argument and fs.O_CREATE
-func Remove(fsys fs.FS, name string, perm fs.FileMode) error {
+func Remove(fsys fs.FS, name string) error {
 	if fsys, ok := fsys.(RemoveFS); ok {
-		return fsys.Remove(name, perm)
+		return fsys.Remove(name)
 	}
 
 	if fsys, ok := fsys.(WriteFS); ok {

@@ -26,7 +26,7 @@ func (fsys FS) MkDir(name string, perm fs.FileMode) error {
 }
 
 // Remove implements writefs.RemoveFS
-func (fsys FS) Remove(name string, perm fs.FileMode) error {
+func (fsys FS) Remove(name string) error {
 	return nil
 }
 

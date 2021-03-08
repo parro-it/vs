@@ -1,9 +1,11 @@
 package memfs
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"testing/fstest"
 	"time"
@@ -14,6 +16,11 @@ import (
 // MapWriteFS ...
 type MapWriteFS struct {
 	fstest.MapFS
+}
+
+// New ...
+func New() *MapWriteFS {
+	return &MapWriteFS{fstest.MapFS{}}
 }
 
 type memWriteFile struct {
@@ -54,13 +61,13 @@ func (fsys MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writef
 		for _, seg := range segments[:len(segments)-1] {
 			curr = path.Join(curr, seg)
 			_, err := fsys.Stat(curr)
-			if os.IsNotExist(err) {
+			/*if os.IsNotExist(err) {
 				_, err = fsys.OpenFile(curr, flag, perm)
 				if err != nil {
 					return nil, err
 				}
 
-			}
+			}*/
 			if err != nil {
 				return nil, err
 			}
@@ -75,6 +82,15 @@ func (fsys MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writef
 	if flag == os.O_TRUNC {
 		if !exists {
 			return nil, fs.ErrNotExist
+		}
+		if file.Mode.IsDir() {
+			files, err := fs.ReadDir(fsys, name)
+			if err != nil {
+				return nil, err
+			}
+			if len(files) != 0 {
+				return nil, fmt.Errorf("%w: directory `%s` not empty", fs.ErrInvalid, name)
+			}
 		}
 		delete(fsys.MapFS, name)
 		return nil, nil
@@ -92,6 +108,16 @@ func (fsys MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writef
 	} else {
 		if flag&os.O_CREATE == 0 {
 			return nil, fs.ErrNotExist
+		}
+		if name != "." {
+			// check that parent exists
+			parent, err := fs.Stat(fsys, filepath.Dir(name))
+			if err != nil {
+				return nil, err
+			}
+			if !parent.IsDir() {
+				return nil, fmt.Errorf("parent directory `%s` is a file: %w", filepath.Dir(name), fs.ErrInvalid)
+			}
 		}
 
 		file = &fstest.MapFile{

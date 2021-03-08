@@ -98,10 +98,6 @@ func TestOsFS(t *testing.T) {
 			assert.Equal(t, buf, actual)
 		})
 
-		t.Run("pass TestFS", func(t *testing.T) {
-			fstest.TestFS(fsw, "adir/afile", "adir2/afile2")
-		})
-
 	})
 
 }
