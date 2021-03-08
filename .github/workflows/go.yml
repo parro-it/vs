@@ -28,10 +28,10 @@ jobs:
         cp -r fixtures/fakehost/var-fixtures/* /var/fixtures 
         printf "ciao\n" > /var/fixtures/ciao.txt
         cp fixtures/fakehost/keys/fake-host /var/fixtures/private-key
-        mkdir ~/.ssh
-        chmod 700 ~/.ssh
-        cp fixtures/fakehost/keys/fake-host ~/.ssh/config 
-        cp fixtures/fakehost/config ~/.ssh/config 
+        mkdir /home/runner/.ssh
+        chmod 700 /home/runner/.ssh
+        cp fixtures/fakehost/keys/fake-host /home/runner/.ssh/fake-host
+        cp fixtures/fakehost/config /home/runner/.ssh/config 
 
     - name: Start fakehost container
       run: |
