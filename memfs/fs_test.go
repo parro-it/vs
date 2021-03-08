@@ -48,6 +48,34 @@ func TestOsFS(t *testing.T) {
 
 		})
 
+		t.Run("creates directories with OpenFile", func(t *testing.T) {
+
+			fsys := MapWriteFS{fstest.MapFS{}}
+			f, err := fsys.OpenFile("adir", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
+			assert.NoError(t, err)
+			assert.Nil(t, f)
+			info, err := fs.Stat(fsys, "tmp/adir")
+			assert.NoError(t, err)
+			assert.True(t, info.IsDir())
+
+		})
+
+		t.Run("remove directories with OpenFile", func(t *testing.T) {
+
+			fsys := MapWriteFS{fstest.MapFS{
+				"adir/afile": &fstest.MapFile{Mode: fs.ModeDir},
+			}}
+			f, err := fsys.OpenFile("adir", os.O_TRUNC, 0)
+			assert.NoError(t, err)
+			assert.Nil(t, f)
+
+			info, err := fs.Stat(fsys, "/tmp/adir")
+			assert.Error(t, err)
+			assert.True(t, os.IsNotExist(err))
+			assert.Nil(t, info)
+
+		})
+
 		t.Run("writes files", func(t *testing.T) {
 			f, err := writefs.OpenFile(fsw, "adir/afile", os.O_WRONLY|os.O_TRUNC, fs.FileMode(0664))
 			assert.NoError(t, err)

@@ -37,7 +37,7 @@ func (fsinst MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writ
 		if err != nil {
 			return nil, err
 		}
-		return writefs.ReadOnlyWriteFile{f}, nil
+		return writefs.ReadOnlyWriteFile{File: f}, nil
 	}
 
 	if exists {
