@@ -1,4 +1,4 @@
-package sshfs
+package genericfs
 
 import (
 	"io/fs"
