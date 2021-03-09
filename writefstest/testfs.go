@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/parro-it/vs/writefs"
 	"github.com/stretchr/testify/assert"
@@ -52,14 +53,20 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			assert.True(t, info.IsDir())
 		}
 
-		dirNotExists := func(t *testing.T, dir string) {
+		fileExists := func(t *testing.T, dir string) {
+			info, err := fs.Stat(fsys, dir)
+			assert.NoError(t, err)
+			assert.True(t, info.Mode().IsRegular())
+		}
+
+		fileNotExists := func(t *testing.T, dir string) {
 			info, err := fs.Stat(fsys, dir)
 			assert.True(t, os.IsNotExist(err))
 			assert.Nil(t, info)
 		}
 
 		checkDirCreated := func(t *testing.T, dir string) {
-			dirNotExists(t, dir)
+			fileNotExists(t, dir)
 
 			err := writefs.Remove(fsys, dir)
 			assert.True(t, err == nil || os.IsNotExist(err))
@@ -96,10 +103,22 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			f, err := fsys.OpenFile(dir, os.O_TRUNC, 0)
 			assert.NoError(t, err)
 			assert.Nil(t, f)
-			dirNotExists(t, dir)
+			fileNotExists(t, dir)
 		}
 
-		t.Run("remove files with OpenFile", func(t *testing.T) {})
+		t.Run("remove files with OpenFile", func(t *testing.T) {
+			file := "dir1/somenewfile"
+			_, err := writefs.WriteFile(fsys, file, []byte(file))
+			assert.NoError(t, err)
+
+			fileExists(t, file)
+
+			f, err := fsys.OpenFile(file, os.O_TRUNC, 0)
+			assert.NoError(t, err)
+			assert.Nil(t, f)
+
+			fileNotExists(t, file)
+		})
 
 		t.Run("remove directories with OpenFile - nested and not recursively", func(t *testing.T) {
 			// non empty dir return error
@@ -113,32 +132,138 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			checkDirRemoved(t, "adir")
 		})
 		t.Run("create and write on new files", func(t *testing.T) {
-			t.Run("set modtime to now", func(t *testing.T) {})
-			t.Run("set content", func(t *testing.T) {})
+			file := "dir1/file1new"
+			err := writefs.Remove(fsys, file)
+			assert.True(t, err == nil || os.IsNotExist(err))
+			fileNotExists(t, file)
+
+			f, err := fsys.OpenFile(file, os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
+			assert.NoError(t, err)
+			assert.NotNil(t, f)
+			buf := []byte("ciao\n")
+			n, err := f.Write(buf)
+			assert.NoError(t, err)
+			assert.Equal(t, len(buf), n)
+			err = f.Close()
+			assert.NoError(t, err)
+
+			t.Run("set modtime to now", func(t *testing.T) {
+				info, err := fs.Stat(fsys, file)
+				assert.NoError(t, err)
+				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+			})
+			t.Run("set content", func(t *testing.T) {
+				actual, err := fs.ReadFile(fsys, file)
+				assert.NoError(t, err)
+				assert.Equal(t, buf, actual)
+			})
 		})
+
 		t.Run("write on existing files", func(t *testing.T) {
-			t.Run("updates modtime", func(t *testing.T) {})
-			t.Run("update content", func(t *testing.T) {})
+			file := "dir1/file1new"
+			err := writefs.Remove(fsys, file)
+			assert.True(t, err == nil || os.IsNotExist(err))
+			_, err = writefs.WriteFile(fsys, file, []byte("ciao\n"))
+			assert.NoError(t, err)
+
+			fileExists(t, file)
+
+			f, err := fsys.OpenFile(file, os.O_WRONLY, os.FileMode(0644))
+			assert.NoError(t, err)
+			assert.NotNil(t, f)
+			buf := []byte("mi")
+			n, err := f.Write(buf)
+			assert.NoError(t, err)
+			assert.Equal(t, len(buf), n)
+			err = f.Close()
+			assert.NoError(t, err)
+
+			t.Run("updates modtime", func(t *testing.T) {
+				info, err := fs.Stat(fsys, file)
+				assert.NoError(t, err)
+				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+			})
+			t.Run("update content", func(t *testing.T) {
+				actual, err := fs.ReadFile(fsys, file)
+				assert.NoError(t, err)
+				assert.Equal(t, []byte("miao\n"), actual)
+			})
 		})
 		t.Run("write on existing files truncating", func(t *testing.T) {
-			t.Run("updates modtime", func(t *testing.T) {})
-			t.Run("set content", func(t *testing.T) {})
+			file := "dir1/file1new"
+			err := writefs.Remove(fsys, file)
+			assert.True(t, err == nil || os.IsNotExist(err))
+			_, err = writefs.WriteFile(fsys, file, []byte("ciao\n"))
+			assert.NoError(t, err)
+
+			fileExists(t, file)
+
+			f, err := fsys.OpenFile(file, os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
+			assert.NoError(t, err)
+			assert.NotNil(t, f)
+			buf := []byte("mi")
+			n, err := f.Write(buf)
+			assert.NoError(t, err)
+			assert.Equal(t, len(buf), n)
+			err = f.Close()
+			assert.NoError(t, err)
+
+			t.Run("updates modtime", func(t *testing.T) {
+				info, err := fs.Stat(fsys, file)
+				assert.NoError(t, err)
+				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+			})
+			t.Run("set content", func(t *testing.T) {
+				actual, err := fs.ReadFile(fsys, file)
+				assert.NoError(t, err)
+				assert.Equal(t, []byte("mi"), actual)
+			})
 		})
 
 		t.Run("appending to existing files", func(t *testing.T) {
-			t.Run("updates modtime", func(t *testing.T) {})
-			t.Run("update content", func(t *testing.T) {})
+			file := "dir1/file1new"
+			err := writefs.Remove(fsys, file)
+			assert.True(t, err == nil || os.IsNotExist(err))
+			_, err = writefs.WriteFile(fsys, file, []byte("ciao\n"))
+			assert.NoError(t, err)
+
+			fileExists(t, file)
+
+			f, err := fsys.OpenFile(file, os.O_WRONLY|os.O_APPEND, os.FileMode(0644))
+			assert.NoError(t, err)
+			assert.NotNil(t, f)
+			buf := []byte("mi")
+			n, err := f.Write(buf)
+			assert.NoError(t, err)
+			assert.Equal(t, len(buf), n)
+			err = f.Close()
+			assert.NoError(t, err)
+
+			t.Run("updates modtime", func(t *testing.T) {
+				info, err := fs.Stat(fsys, file)
+				assert.NoError(t, err)
+				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+			})
+			t.Run("updates content", func(t *testing.T) {
+				actual, err := fs.ReadFile(fsys, file)
+				assert.NoError(t, err)
+				assert.Equal(t, []byte("ciao\nmi"), actual)
+			})
 		})
 
-		t.Run("opening non existing files", func(t *testing.T) {})
-		t.Run("opening read-only files for write", func(t *testing.T) {})
-		t.Run("", func(t *testing.T) {})
-		t.Run("", func(t *testing.T) {})
-		t.Run("", func(t *testing.T) {})
-		t.Run("", func(t *testing.T) {})
-		t.Run("", func(t *testing.T) {})
-		t.Run("", func(t *testing.T) {})
-		t.Run("", func(t *testing.T) {})
+		t.Run("opening non existing files", func(t *testing.T) {
+			f, err := fsys.OpenFile("unkfile", os.O_WRONLY, os.FileMode(0644))
+			assert.Error(t, err)
+			assert.True(t, errors.Is(err, fs.ErrNotExist))
+			assert.Nil(t, f)
+		})
+		/*
+			t.Run("opening read-only files for write", func(t *testing.T) {
+				f, err := fsys.OpenFile("/etc/passwd", os.O_WRONLY, os.FileMode(0644))
+				assert.Error(t, err)
+				assert.Nil(t, f)
+			})
+		*/
 	}
 }
 

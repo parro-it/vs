@@ -25,12 +25,20 @@ func New() *MapWriteFS {
 
 type memWriteFile struct {
 	fs.File
-	file *fstest.MapFile
+	file   *fstest.MapFile
+	cursor int
 }
 
 func (f memWriteFile) Write(buf []byte) (n int, err error) {
-	f.file.Data = append(f.file.Data, buf...)
-	return len(buf), nil
+	sz := len(buf)
+	if f.cursor == len(f.file.Data) {
+		f.file.Data = append(f.file.Data, buf...)
+	} else {
+		buf = append(buf, f.file.Data[f.cursor+len(buf):]...)
+		f.file.Data = append(f.file.Data[:f.cursor], buf...)
+	}
+	f.cursor += sz
+	return sz, nil
 }
 
 // OpenFile ...
@@ -95,15 +103,14 @@ func (fsys MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writef
 		delete(fsys.MapFS, name)
 		return nil, nil
 	}
-
+	cursor := 0
 	if exists {
 		if flag&os.O_TRUNC == os.O_TRUNC {
 			file.Data = []byte{}
 		} else if flag&os.O_EXCL == os.O_EXCL {
 			return nil, fs.ErrExist
-		} else if flag&os.O_APPEND == 0 {
-			// non append open of existing files is not supported
-			return nil, fs.ErrInvalid
+		} else if flag&os.O_APPEND == os.O_APPEND {
+			cursor += len(file.Data)
 		}
 	} else {
 		if flag&os.O_CREATE == 0 {
@@ -135,7 +142,8 @@ func (fsys MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writef
 	}
 
 	return memWriteFile{
-		File: f,
-		file: file,
+		File:   f,
+		file:   file,
+		cursor: cursor,
 	}, nil
 }
