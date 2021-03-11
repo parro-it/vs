@@ -29,5 +29,5 @@ func Remove(fsys fs.FS, name string) error {
 		return err
 	}
 
-	return fmt.Errorf("fsys does not support removal of files")
+	return fmt.Errorf("%w: fsys does not support removal of files", fs.ErrInvalid)
 }

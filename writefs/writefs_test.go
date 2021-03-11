@@ -70,36 +70,3 @@ func TestWriteFS(t *testing.T) {
 	})
 
 }
-
-type testWriteFS struct {
-	fstest.MapFS
-	expectedErr error
-}
-
-type testFileWriter struct {
-}
-
-var _ FileWriter = testFileWriter{}
-
-func (w testFileWriter) Close() error {
-	return nil
-}
-func (w testFileWriter) Write(buf []byte) (int, error) {
-	return len(buf), nil
-}
-func (w testFileWriter) Read(buf []byte) (int, error) {
-	return len(buf), nil
-}
-func (w testFileWriter) Stat() (fs.FileInfo, error) {
-	return nil, nil
-}
-
-// OpenFile ...
-func (fsys testWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (FileWriter, error) {
-	if !fs.ValidPath(name) {
-		return nil, &fs.PathError{}
-	}
-	return testFileWriter{}, fsys.expectedErr
-}
-
-var _ WriteFS = testWriteFS{}

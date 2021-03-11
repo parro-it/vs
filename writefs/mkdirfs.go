@@ -32,5 +32,5 @@ func MkDir(fsys fs.FS, name string, perm fs.FileMode) error {
 		return err
 	}
 
-	return fmt.Errorf("fsys does not support creation of directories")
+	return fmt.Errorf("%w: fsys does not support creation of directories", fs.ErrInvalid)
 }
