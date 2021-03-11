@@ -97,17 +97,17 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			fileNotExists(t, dir)
 		}
 		t.Run("creates directories with OpenFile - nested and not recursively", func(t *testing.T) {
-			dirRemove(t, "adir/nested")
-			dirRemove(t, "adir")
+			dirRemove(t, "dir1/adir/nested")
+			dirRemove(t, "dir1/adir")
 
 			// nested dir return error
-			f, err := fsys.OpenFile("adir/nested", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
+			f, err := fsys.OpenFile("dir1/adir/nested", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
 			assert.Error(t, err)
 			assert.Nil(t, f)
 			assert.True(t, errors.Is(err, fs.ErrNotExist))
 
-			checkDirCreated(t, "adir")
-			checkDirCreated(t, "adir/nested")
+			checkDirCreated(t, "dir1/adir")
+			checkDirCreated(t, "dir1/adir/nested")
 		})
 
 		t.Run("OpenFile return *PathError on bad paths", func(t *testing.T) {
@@ -133,14 +133,14 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 		t.Run("remove directories with OpenFile - nested and not recursively", func(t *testing.T) {
 			// non empty dir return error
-			f, err := fsys.OpenFile("adir", os.O_TRUNC, 0)
+			f, err := fsys.OpenFile("dir1/adir", os.O_TRUNC, 0)
 			assert.Error(t, err)
 			assert.Nil(t, f)
 			assert.True(t, errors.Is(err, fs.ErrInvalid))
 			//assert.True(t, errors.Is(err, &fs.PathError{}))
 
-			checkDirRemoved(t, "adir/nested")
-			checkDirRemoved(t, "adir")
+			checkDirRemoved(t, "dir1/adir/nested")
+			checkDirRemoved(t, "dir1/adir")
 		})
 		t.Run("create and write on new files", func(t *testing.T) {
 			file := "dir1/file1new"

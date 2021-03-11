@@ -5,12 +5,14 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/parro-it/vs/memfs"
+	"github.com/parro-it/vs/writefstest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMountedFS(t *testing.T) {
 	data := []byte{0xca, 0xfe, 0xba, 0xbe}
-	memfs := fstest.MapFS{
+	memfs1 := fstest.MapFS{
 		"adir/afile": &fstest.MapFile{Data: data},
 	}
 
@@ -18,10 +20,17 @@ func TestMountedFS(t *testing.T) {
 		"adir2/afile2": &fstest.MapFile{Data: data},
 	}
 
+	dir1 := memfs.New()
+	dirempty := memfs.New()
+
 	mfs := MountedFS{
-		"c": memfs,
-		"d": memfs2,
+		"c":        memfs1,
+		"d":        memfs2,
+		"dir1":     dir1,
+		"dirempty": dirempty,
 	}
+
+	t.Run("pass writefstest.TestFS", writefstest.TestFS(mfs))
 
 	t.Run("read files from multiple fs", func(t *testing.T) {
 		buf, err := fs.ReadFile(mfs, "c/adir/afile")
@@ -50,11 +59,8 @@ func TestMountedFS(t *testing.T) {
 		buf, err := fs.ReadFile(mfs, "f/adir/afile")
 
 		assert.Error(t, err)
-		assert.Equal(t, "fs not found: f", err.Error())
+		assert.Equal(t, "file does not exist: fs not found: f", err.Error())
 		assert.Nil(t, buf)
 	})
 
-	t.Run("TestFS", func(t *testing.T) {
-		assert.NoError(t, fstest.TestFS(mfs, "c/adir/afile", "d/adir2/afile2"))
-	})
 }

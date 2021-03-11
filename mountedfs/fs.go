@@ -103,7 +103,23 @@ func (f MountedFS) Sub(dir string) (fs.FS, error) {
 
 // OpenFile implements writefs.WriteFS
 func (f MountedFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.FileWriter, error) {
-	return nil, nil
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{}
+	}
+
+	if name == "." {
+		return nil, syscall.EISDIR
+	}
+
+	rpath := f.pickRemotePath(name)
+	if rpath.Error != nil {
+		return nil, rpath.Error
+	}
+	if rpath.Path == "." {
+		return nil, fs.ErrExist
+	}
+
+	return writefs.OpenFile(rpath.Fs, rpath.Path, flag, perm)
 }
 
 // Mount add a child file system, using `name`
@@ -231,7 +247,7 @@ func (f MountedFS) pickRemotePath(name string) remotePath {
 	var ok bool
 	res.Fs, ok = f[res.FsName]
 	if !ok {
-		res.Error = fmt.Errorf("fs not found: %s", res.FsName)
+		res.Error = fmt.Errorf("%w: fs not found: %s", fs.ErrNotExist, res.FsName)
 	}
 
 	return res
