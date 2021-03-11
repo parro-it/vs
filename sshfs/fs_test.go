@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/mikkeloscar/sshconfig"
+	"github.com/parro-it/vs/writefstest"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ssh"
 )
@@ -15,14 +16,21 @@ func TestSSHFS(t *testing.T) {
 		Port:         2222,
 		HostName:     "localhost",
 	}
-	/*
-		t.Run("writefstest.TestFS", func(t *testing.T) {
-			fsys, err := ConnectFromConfig("/var/fixtures", "fakehost")
-			assert.NoError(t, err)
-			t.Run("Pass writefstest.TestFS", writefstest.TestFS(fsys))
-			fsys.Disconnect()
-		})
-	*/
+
+	t.Run("writefstest.TestFS", func(t *testing.T) {
+		fsys, err := ConnectFromConfig("/var/fixtures", "fakehost")
+		assert.NoError(t, err)
+
+		sess, err := fsys.ownedSSHCient.NewSession()
+		defer sess.Close()
+		assert.NoError(t, err)
+		err = sess.Run("rm -rf /var/fixtures/dir1 /var/fixtures/dirempty")
+		assert.NoError(t, err)
+
+		t.Run("Pass writefstest.TestFS", writefstest.TestFS(fsys))
+		fsys.Disconnect()
+	})
+
 	t.Run("Connection", func(t *testing.T) {
 		t.Run("can be created from an ssh config hostname", func(t *testing.T) {
 			fsys, err := ConnectFromConfig("/var/fixtures", "fakehost")

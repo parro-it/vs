@@ -30,11 +30,30 @@ func (fsys *SSHFS) OpenFile(name string, flag int, perm fs.FileMode) (writefs.Fi
 
 	if flag&os.O_CREATE == os.O_CREATE &&
 		perm.IsDir() {
-		return nil, fsys.client.MkdirAll(fPath)
+		err := fsys.client.Mkdir(fPath)
+		if err != nil {
+			info, _ := fsys.client.Stat(fPath)
+			if info != nil {
+				return nil, fs.ErrExist
+			}
+			return nil, err
+		}
+		return nil, nil
 	}
 
 	if flag == os.O_TRUNC {
-		return nil, fsys.client.RemoveDirectory(fPath)
+		info, err := fsys.client.Stat(fPath)
+		if err != nil {
+			return nil, err
+		}
+		if info.IsDir() {
+			err := fsys.client.RemoveDirectory(fPath)
+			if err != nil {
+				err = fs.ErrInvalid
+			}
+			return nil, err
+		}
+		return nil, fsys.client.Remove(fPath)
 	}
 
 	f, err := fsys.client.OpenFile(fPath, flag)

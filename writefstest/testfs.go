@@ -2,6 +2,7 @@ package writefstest
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"strings"
@@ -31,7 +32,11 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		t.Run("initialize testing FS", func(t *testing.T) {
 			for _, dir := range dirs {
 				err := writefs.MkDir(fsys, dir, fs.FileMode(0755))
+				if !(err == nil || errors.Is(err, fs.ErrExist)) {
+					fmt.Println(err, dir)
+				}
 				assert.True(t, err == nil || errors.Is(err, fs.ErrExist))
+
 			}
 
 			for _, file := range files {
@@ -76,8 +81,25 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			assert.Nil(t, f)
 			dirExists(t, dir)
 		}
+		dirRemove := func(t *testing.T, dir string) {
+			f, _ := fsys.OpenFile(dir, os.O_TRUNC, 0)
+			assert.Nil(t, f)
+			fileNotExists(t, dir)
+		}
+		checkDirRemoved := func(t *testing.T, dir string) {
+			err := writefs.MkDir(fsys, dir, fs.FileMode(0755))
+			assert.True(t, err == nil || os.IsExist(err))
+			dirExists(t, dir)
 
+			f, err := fsys.OpenFile(dir, os.O_TRUNC, 0)
+			assert.NoError(t, err)
+			assert.Nil(t, f)
+			fileNotExists(t, dir)
+		}
 		t.Run("creates directories with OpenFile - nested and not recursively", func(t *testing.T) {
+			dirRemove(t, "adir/nested")
+			dirRemove(t, "adir")
+
 			// nested dir return error
 			f, err := fsys.OpenFile("adir/nested", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
 			assert.Error(t, err)
@@ -94,17 +116,6 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 				return err
 			})
 		})
-
-		checkDirRemoved := func(t *testing.T, dir string) {
-			err := writefs.MkDir(fsys, dir, fs.FileMode(0755))
-			assert.True(t, err == nil || os.IsExist(err))
-			dirExists(t, dir)
-
-			f, err := fsys.OpenFile(dir, os.O_TRUNC, 0)
-			assert.NoError(t, err)
-			assert.Nil(t, f)
-			fileNotExists(t, dir)
-		}
 
 		t.Run("remove files with OpenFile", func(t *testing.T) {
 			file := "dir1/somenewfile"
