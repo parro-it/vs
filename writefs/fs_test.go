@@ -24,7 +24,6 @@ func fixtureFile(name string) string {
 }
 
 func TestWriteFS(t *testing.T) {
-
 	t.Run("defaults to Open", func(t *testing.T) {
 		data := []byte{0xca, 0xfe, 0xba, 0xbe}
 

@@ -76,13 +76,13 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			err := writefs.Remove(fsys, dir)
 			assert.True(t, err == nil || os.IsNotExist(err))
 
-			f, err := fsys.OpenFile(dir, os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
+			f, err := writefs.OpenFile(fsys, dir, os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
 			assert.NoError(t, err)
 			assert.Nil(t, f)
 			dirExists(t, dir)
 		}
 		dirRemove := func(t *testing.T, dir string) {
-			f, _ := fsys.OpenFile(dir, os.O_TRUNC, 0)
+			f, _ := writefs.OpenFile(fsys, dir, os.O_TRUNC, 0)
 			assert.Nil(t, f)
 			fileNotExists(t, dir)
 		}
@@ -91,7 +91,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			assert.True(t, err == nil || os.IsExist(err))
 			dirExists(t, dir)
 
-			f, err := fsys.OpenFile(dir, os.O_TRUNC, 0)
+			f, err := writefs.OpenFile(fsys, dir, os.O_TRUNC, 0)
 			assert.NoError(t, err)
 			assert.Nil(t, f)
 			fileNotExists(t, dir)
@@ -101,7 +101,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			dirRemove(t, "dir1/adir")
 
 			// nested dir return error
-			f, err := fsys.OpenFile("dir1/adir/nested", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
+			f, err := writefs.OpenFile(fsys, "dir1/adir/nested", os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
 			assert.Error(t, err)
 			assert.Nil(t, f)
 			assert.True(t, errors.Is(err, fs.ErrNotExist))
@@ -112,7 +112,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 		t.Run("OpenFile return *PathError on bad paths", func(t *testing.T) {
 			checkBadPath(t, "afilename", "OpenFile", func(name string) error {
-				_, err := fsys.OpenFile(name, 0, 0)
+				_, err := writefs.OpenFile(fsys, name, 0, 0)
 				return err
 			})
 		})
@@ -124,7 +124,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 			fileExists(t, file)
 
-			f, err := fsys.OpenFile(file, os.O_TRUNC, 0)
+			f, err := writefs.OpenFile(fsys, file, os.O_TRUNC, 0)
 			assert.NoError(t, err)
 			assert.Nil(t, f)
 
@@ -133,7 +133,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 		t.Run("remove directories with OpenFile - nested and not recursively", func(t *testing.T) {
 			// non empty dir return error
-			f, err := fsys.OpenFile("dir1/adir", os.O_TRUNC, 0)
+			f, err := writefs.OpenFile(fsys, "dir1/adir", os.O_TRUNC, 0)
 			assert.Error(t, err)
 			assert.Nil(t, f)
 			assert.True(t, errors.Is(err, fs.ErrInvalid))
@@ -148,7 +148,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			assert.True(t, err == nil || os.IsNotExist(err))
 			fileNotExists(t, file)
 
-			f, err := fsys.OpenFile(file, os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
+			f, err := writefs.OpenFile(fsys, file, os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
 			assert.NoError(t, err)
 			assert.NotNil(t, f)
 			buf := []byte("ciao\n")
@@ -179,7 +179,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 			fileExists(t, file)
 
-			f, err := fsys.OpenFile(file, os.O_WRONLY, os.FileMode(0644))
+			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY, os.FileMode(0644))
 			assert.NoError(t, err)
 			assert.NotNil(t, f)
 			buf := []byte("mi")
@@ -209,7 +209,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 			fileExists(t, file)
 
-			f, err := fsys.OpenFile(file, os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
+			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
 			assert.NoError(t, err)
 			assert.NotNil(t, f)
 			buf := []byte("mi")
@@ -240,7 +240,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 			fileExists(t, file)
 
-			f, err := fsys.OpenFile(file, os.O_WRONLY|os.O_APPEND, os.FileMode(0644))
+			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY|os.O_APPEND, os.FileMode(0644))
 			assert.NoError(t, err)
 			assert.NotNil(t, f)
 			buf := []byte("mi")
@@ -263,14 +263,14 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		})
 
 		t.Run("opening non existing files", func(t *testing.T) {
-			f, err := fsys.OpenFile("unkfile", os.O_WRONLY, os.FileMode(0644))
+			f, err := writefs.OpenFile(fsys, "unkfile", os.O_WRONLY, os.FileMode(0644))
 			assert.Error(t, err)
 			assert.True(t, errors.Is(err, fs.ErrNotExist))
 			assert.Nil(t, f)
 		})
 		/*
 			t.Run("opening read-only files for write", func(t *testing.T) {
-				f, err := fsys.OpenFile("/etc/passwd", os.O_WRONLY, os.FileMode(0644))
+				f, err := writefs.OpenFile(fsys,"/etc/passwd", os.O_WRONLY, os.FileMode(0644))
 				assert.Error(t, err)
 				assert.Nil(t, f)
 			})

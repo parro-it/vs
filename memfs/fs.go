@@ -23,6 +23,11 @@ func New() *MapWriteFS {
 	return &MapWriteFS{fstest.MapFS{}}
 }
 
+// NewFS ...
+func NewFS() writefs.WriteFS {
+	return &MapWriteFS{fstest.MapFS{}}
+}
+
 type memWriteFile struct {
 	fs.File
 	file   *fstest.MapFile
