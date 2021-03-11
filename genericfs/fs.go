@@ -10,14 +10,15 @@ import (
 type FS struct{}
 
 var (
-	_ fs.StatFS        = FS{}
-	_ fs.ReadFileFS    = FS{}
-	_ fs.SubFS         = FS{}
+	_ fs.StatFS     = FS{}
+	_ fs.ReadFileFS = FS{}
+	_ fs.SubFS      = FS{}
+	_ fs.ReadDirFS  = FS{}
+	_ fs.GlobFS     = FS{}
+
 	_ writefs.WriteFS  = FS{}
 	_ writefs.RemoveFS = FS{}
 	_ writefs.MkDirFS  = FS{}
-	_ fs.ReadDirFS     = FS{}
-	_ fs.GlobFS        = FS{}
 )
 
 // MkDir implements writefs.MkDirFS

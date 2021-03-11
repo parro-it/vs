@@ -1,4 +1,8 @@
-* mountedfs: implement writefs.writefs
+DONE * mountedfs: implement writefs.writefs
+* sshfs, memfs, osfs implements MkDirFS and RemoveFS
+* MkDirFS and RemoveFS: add option for dir depth (both in creation and removal) 
+    and to specify if you want to remove a directory
+
 * mission: run a software on a network of nodes,
     connected via ssh, with developer happiness as first
     principle and the ability to move piece of go software 
