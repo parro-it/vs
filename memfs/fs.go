@@ -34,7 +34,7 @@ type memWriteFile struct {
 	cursor int
 }
 
-func (f memWriteFile) Write(buf []byte) (n int, err error) {
+func (f *memWriteFile) Write(buf []byte) (n int, err error) {
 	sz := len(buf)
 	if f.cursor == len(f.file.Data) {
 		f.file.Data = append(f.file.Data, buf...)
@@ -146,7 +146,7 @@ func (fsys MapWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (writef
 		return nil, err
 	}
 
-	return memWriteFile{
+	return &memWriteFile{
 		File:   f,
 		file:   file,
 		cursor: cursor,
