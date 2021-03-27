@@ -1,7 +1,6 @@
-package lazyfs
+package syncfs
 
 import (
-	"io/fs"
 	"testing"
 
 	"github.com/parro-it/vs/memfs"
@@ -9,11 +8,9 @@ import (
 	"github.com/parro-it/vs/writefstest"
 )
 
-func TestLazyFS(t *testing.T) {
+func TestSyncFS(t *testing.T) {
 	t.Run("pass writefstest.TestFS", func(t *testing.T) {
-		fsys := New(func() (fs.FS, error) {
-			return memfs.New(), nil
-		})
+		fsys := New(memfs.New())
 		t.Run("Pass writefstest.TestFS", writefstest.TestFS(fsys.(writefs.WriteFS)))
 	})
 

@@ -20,12 +20,16 @@ type MapWriteFS struct {
 
 // New ...
 func New() *MapWriteFS {
-	return &MapWriteFS{fstest.MapFS{}}
+	return &MapWriteFS{
+		MapFS: map[string]*fstest.MapFile{},
+	}
 }
 
 // NewFS ...
 func NewFS() writefs.WriteFS {
-	return &MapWriteFS{fstest.MapFS{}}
+	return &MapWriteFS{
+		MapFS: map[string]*fstest.MapFile{},
+	}
 }
 
 type memWriteFile struct {

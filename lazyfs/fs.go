@@ -1,4 +1,4 @@
-package genericfs
+package lazyfs
 
 import (
 	"io/fs"
