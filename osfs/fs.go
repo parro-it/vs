@@ -70,21 +70,15 @@ func (fsinst osWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (write
 }
 
 func fsErr(err error, name string) error {
-	fmt.Println("ERROR", err)
 	if os.IsExist(err) {
-		fmt.Println("fs.ErrExist")
 		return fmt.Errorf("%w: %s", fs.ErrExist, name)
 	}
 	if os.IsNotExist(err) {
-		fmt.Println("fs.ErrNotExist")
 		return fmt.Errorf("%w: %s", fs.ErrNotExist, name)
 	}
 	if os.IsPermission(err) {
-		fmt.Println("fs.ErrPermission")
 		return fmt.Errorf("%w: %s", fs.ErrPermission, name)
 	}
-
-	fmt.Println("unknown err")
 
 	return err
 }
