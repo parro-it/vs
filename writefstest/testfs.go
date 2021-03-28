@@ -2,7 +2,6 @@ package writefstest
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"strings"
@@ -32,9 +31,9 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		t.Run("initialize testing FS", func(t *testing.T) {
 			for _, dir := range dirs {
 				err := writefs.MkDir(fsys, dir, fs.FileMode(0755))
-				if !(err == nil || errors.Is(err, fs.ErrExist)) {
-					fmt.Println(err, dir)
-				}
+				//if !(err == nil || errors.Is(err, fs.ErrExist)) {
+				//	fmt.Println(err, dir)
+				//}
 				assert.True(t, err == nil || errors.Is(err, fs.ErrExist))
 
 			}
