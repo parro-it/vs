@@ -54,19 +54,21 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 
 		dirExists := func(t *testing.T, dir string) {
 			info, err := fs.Stat(fsys, dir)
-			assert.NoError(t, err)
-			assert.True(t, info.IsDir())
+			if assert.NoError(t, err) {
+				assert.True(t, info.IsDir())
+			}
 		}
 
 		fileExists := func(t *testing.T, dir string) {
 			info, err := fs.Stat(fsys, dir)
-			assert.NoError(t, err)
-			assert.True(t, info.Mode().IsRegular())
+			if assert.NoError(t, err) {
+				assert.True(t, info.Mode().IsRegular())
+			}
 		}
 
 		fileNotExists := func(t *testing.T, dir string) {
 			info, err := fs.Stat(fsys, dir)
-			assert.True(t, os.IsNotExist(err))
+			assert.True(t, errors.Is(err, fs.ErrNotExist))
 			assert.Nil(t, info)
 		}
 
@@ -74,7 +76,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 			fileNotExists(t, dir)
 
 			err := writefs.Remove(fsys, dir)
-			assert.True(t, err == nil || os.IsNotExist(err))
+			assert.True(t, err == nil || errors.Is(err, fs.ErrNotExist))
 
 			f, err := writefs.OpenFile(fsys, dir, os.O_CREATE, fs.FileMode(0755)|fs.ModeDir)
 			assert.NoError(t, err)
@@ -88,7 +90,7 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		}
 		checkDirRemoved := func(t *testing.T, dir string) {
 			err := writefs.MkDir(fsys, dir, fs.FileMode(0755))
-			assert.True(t, err == nil || os.IsExist(err))
+			assert.True(t, err == nil || errors.Is(err, fs.ErrExist))
 			dirExists(t, dir)
 
 			f, err := writefs.OpenFile(fsys, dir, os.O_TRUNC, 0)
@@ -145,25 +147,28 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		t.Run("create and write on new files", func(t *testing.T) {
 			file := "dir1/file1new"
 			err := writefs.Remove(fsys, file)
-			assert.True(t, err == nil || os.IsNotExist(err))
+			assert.True(t, err == nil || errors.Is(err, fs.ErrNotExist))
 			fileNotExists(t, file)
 
-			f, err := writefs.OpenFile(fsys, file, os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
-			assert.NoError(t, err)
-			assert.NotNil(t, f)
-			buf := []byte("ciao\n")
-			n, err := f.Write(buf)
-			assert.NoError(t, err)
-			assert.Equal(t, len(buf), n)
-			err = f.Close()
-			assert.NoError(t, err)
+			f, err := writefs.OpenFile(fsys, file, os.O_CREATE|os.O_WRONLY, fs.FileMode(0644))
+			if assert.NoError(t, err) {
+				assert.NotNil(t, f)
+				buf := []byte("ciao\n")
+				n, err := f.Write(buf)
+				assert.NoError(t, err)
+				assert.Equal(t, len(buf), n)
+				err = f.Close()
+				assert.NoError(t, err)
+			}
 
 			t.Run("set modtime to now", func(t *testing.T) {
 				info, err := fs.Stat(fsys, file)
-				assert.NoError(t, err)
-				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				if assert.NoError(t, err) {
+					assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				}
 			})
 			t.Run("set content", func(t *testing.T) {
+				buf := []byte("ciao\n")
 				actual, err := fs.ReadFile(fsys, file)
 				assert.NoError(t, err)
 				assert.Equal(t, buf, actual)
@@ -173,26 +178,28 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		t.Run("write on existing files", func(t *testing.T) {
 			file := "dir1/file1new"
 			err := writefs.Remove(fsys, file)
-			assert.True(t, err == nil || os.IsNotExist(err))
+			assert.True(t, err == nil || errors.Is(err, fs.ErrExist))
 			_, err = writefs.WriteFile(fsys, file, []byte("ciao\n"))
 			assert.NoError(t, err)
 
 			fileExists(t, file)
 
-			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY, os.FileMode(0644))
-			assert.NoError(t, err)
-			assert.NotNil(t, f)
-			buf := []byte("mi")
-			n, err := f.Write(buf)
-			assert.NoError(t, err)
-			assert.Equal(t, len(buf), n)
-			err = f.Close()
-			assert.NoError(t, err)
+			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY, fs.FileMode(0644))
+			if assert.NoError(t, err) {
+				assert.NotNil(t, f)
+				buf := []byte("mi")
+				n, err := f.Write(buf)
+				assert.NoError(t, err)
+				assert.Equal(t, len(buf), n)
+				err = f.Close()
+				assert.NoError(t, err)
+			}
 
 			t.Run("updates modtime", func(t *testing.T) {
 				info, err := fs.Stat(fsys, file)
-				assert.NoError(t, err)
-				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				if assert.NoError(t, err) {
+					assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				}
 			})
 			t.Run("update content", func(t *testing.T) {
 				actual, err := fs.ReadFile(fsys, file)
@@ -203,26 +210,28 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		t.Run("write on existing files truncating", func(t *testing.T) {
 			file := "dir1/file1new"
 			err := writefs.Remove(fsys, file)
-			assert.True(t, err == nil || os.IsNotExist(err))
+			assert.True(t, err == nil || errors.Is(err, fs.ErrExist))
 			_, err = writefs.WriteFile(fsys, file, []byte("ciao\n"))
 			assert.NoError(t, err)
 
 			fileExists(t, file)
 
-			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
-			assert.NoError(t, err)
-			assert.NotNil(t, f)
-			buf := []byte("mi")
-			n, err := f.Write(buf)
-			assert.NoError(t, err)
-			assert.Equal(t, len(buf), n)
-			err = f.Close()
-			assert.NoError(t, err)
+			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY|os.O_TRUNC, fs.FileMode(0644))
+			if assert.NoError(t, err) {
+				assert.NotNil(t, f)
+				buf := []byte("mi")
+				n, err := f.Write(buf)
+				assert.NoError(t, err)
+				assert.Equal(t, len(buf), n)
+				err = f.Close()
+				assert.NoError(t, err)
+			}
 
 			t.Run("updates modtime", func(t *testing.T) {
 				info, err := fs.Stat(fsys, file)
-				assert.NoError(t, err)
-				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				if assert.NoError(t, err) {
+					assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				}
 			})
 			t.Run("set content", func(t *testing.T) {
 				actual, err := fs.ReadFile(fsys, file)
@@ -234,26 +243,28 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		t.Run("appending to existing files", func(t *testing.T) {
 			file := "dir1/file1new"
 			err := writefs.Remove(fsys, file)
-			assert.True(t, err == nil || os.IsNotExist(err))
+			assert.True(t, err == nil || errors.Is(err, fs.ErrExist))
 			_, err = writefs.WriteFile(fsys, file, []byte("ciao\n"))
 			assert.NoError(t, err)
 
 			fileExists(t, file)
 
-			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY|os.O_APPEND, os.FileMode(0644))
-			assert.NoError(t, err)
-			assert.NotNil(t, f)
-			buf := []byte("mi")
-			n, err := f.Write(buf)
-			assert.NoError(t, err)
-			assert.Equal(t, len(buf), n)
-			err = f.Close()
-			assert.NoError(t, err)
+			f, err := writefs.OpenFile(fsys, file, os.O_WRONLY|os.O_APPEND, fs.FileMode(0644))
+			if assert.NoError(t, err) {
+				assert.NotNil(t, f)
+				buf := []byte("mi")
+				n, err := f.Write(buf)
+				assert.NoError(t, err)
+				assert.Equal(t, len(buf), n)
+				err = f.Close()
+				assert.NoError(t, err)
+			}
 
 			t.Run("updates modtime", func(t *testing.T) {
 				info, err := fs.Stat(fsys, file)
-				assert.NoError(t, err)
-				assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				if assert.NoError(t, err) {
+					assert.Less(t, time.Now().Sub(info.ModTime()), time.Second)
+				}
 			})
 			t.Run("updates content", func(t *testing.T) {
 				actual, err := fs.ReadFile(fsys, file)
@@ -263,14 +274,14 @@ func TestFS(fsys writefs.WriteFS) func(t *testing.T) {
 		})
 
 		t.Run("opening non existing files", func(t *testing.T) {
-			f, err := writefs.OpenFile(fsys, "unkfile", os.O_WRONLY, os.FileMode(0644))
+			f, err := writefs.OpenFile(fsys, "unkfile", os.O_WRONLY, fs.FileMode(0644))
 			assert.Error(t, err)
 			assert.True(t, errors.Is(err, fs.ErrNotExist))
 			assert.Nil(t, f)
 		})
 		/*
 			t.Run("opening read-only files for write", func(t *testing.T) {
-				f, err := writefs.OpenFile(fsys,"/etc/passwd", os.O_WRONLY, os.FileMode(0644))
+				f, err := writefs.OpenFile(fsys,"/etc/passwd", os.O_WRONLY, fs.FileMode(0644))
 				assert.Error(t, err)
 				assert.Nil(t, f)
 			})

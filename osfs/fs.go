@@ -25,13 +25,15 @@ func (fsinst osWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (write
 	if flag&os.O_CREATE == os.O_CREATE && perm.IsDir() {
 		err := os.Mkdir(realPath, perm)
 		if err != nil {
+			//return nil, fsErr(err, name)
 			if os.IsExist(err) {
-				return nil, err
+				return nil, fsErr(err, name)
 			}
 			if err == syscall.ENOENT {
 				return nil, fs.ErrNotExist
 			}
 			return nil, err //fmt.Errorf("%w: %s", fmt.Errorf("%w", fs.ErrInvalid), err.Error())
+
 		}
 		return nil, nil
 	}
@@ -41,6 +43,8 @@ func (fsinst osWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (write
 		if err == nil {
 			return nil, nil
 		}
+		//return nil, fsErr(err, name)
+
 		if os.IsNotExist(err) {
 			return nil, err
 		}
@@ -53,13 +57,36 @@ func (fsinst osWriteFS) OpenFile(name string, flag int, perm fs.FileMode) (write
 				Path: name,
 			}
 		}
-		/*if err != nil {
-			return nil, fmt.Errorf("%w: %s", fmt.Errorf("%w", fs.ErrInvalid), err.Error())
-		}*/
+
 		return nil, err
+
 	}
 
-	return os.OpenFile(realPath, flag, perm)
+	f, err := os.OpenFile(realPath, flag, perm)
+	if err != nil {
+		return nil, err //fsErr(err, name)
+	}
+	return f, nil
+}
+
+func fsErr(err error, name string) error {
+	fmt.Println("ERROR", err)
+	if os.IsExist(err) {
+		fmt.Println("fs.ErrExist")
+		return fmt.Errorf("%w: %s", fs.ErrExist, name)
+	}
+	if os.IsNotExist(err) {
+		fmt.Println("fs.ErrNotExist")
+		return fmt.Errorf("%w: %s", fs.ErrNotExist, name)
+	}
+	if os.IsPermission(err) {
+		fmt.Println("fs.ErrPermission")
+		return fmt.Errorf("%w: %s", fs.ErrPermission, name)
+	}
+
+	fmt.Println("unknown err")
+
+	return err
 }
 
 // DirWriteFS ...
